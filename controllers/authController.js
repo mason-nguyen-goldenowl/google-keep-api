@@ -47,7 +47,7 @@ exports.login = async (req, res, next) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      const error = new Error("Invalid username");
+      const error = new Error("Invalid email");
       error.statusCode = 401;
       throw error;
     }

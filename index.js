@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 
 const authRoutes = require("./routes/auth");
+const noteRoutes = require("./routes/note");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 app.use("/auth", authRoutes);
+app.use("/note", noteRoutes);
 
 app.use((error, req, res, next) => {
   console.log(error);

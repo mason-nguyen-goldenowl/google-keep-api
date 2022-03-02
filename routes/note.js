@@ -11,4 +11,8 @@ router.post("/create", verify, noteController.createNote);
 
 router.post("/edit", verify, noteController.editNote);
 
+router.put("/archive", verify, noteController.archiveNote);
+
+router.put("/unarchive", verify, noteController.unArchiveNote);
+
 module.exports = router;

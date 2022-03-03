@@ -4,13 +4,13 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const generateAccessToken = (user) => {
-  return jwt.sign({ id: user._id }, process.env.ACESS_SECRET_KEY, {
+  return jwt.sign({ _id: user._id }, process.env.ACESS_SECRET_KEY, {
     expiresIn: "1h",
   });
 };
 
 const generateRefreshToken = (user) => {
-  return jwt.sign({ id: user._id }, process.env.REFRESH_SECRET_KEY, {
+  return jwt.sign({ _id: user._id }, process.env.REFRESH_SECRET_KEY, {
     expiresIn: "7d",
   });
 };
@@ -76,6 +76,42 @@ exports.login = async (req, res, next) => {
     await res
       .status(200)
       .json({ accessToken, refreshToken, userId: user._id.toString() });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.refreshUserToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.body.token;
+    if (!refreshToken)
+      return res.status(401).json("You are not authenticated!");
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_SECRET_KEY,
+      async (err, user) => {
+        err && console.log(err);
+
+        const newAccessToken = generateAccessToken(user);
+        const newRefreshToken = generateRefreshToken(user);
+
+        await User.findByIdAndUpdate(
+          { _id: user.id },
+          { $set: { refresh_token: newRefreshToken } }
+        );
+
+        await res.cookie("access_token", newAccessToken, {
+          maxAge: 3600000,
+        });
+        res.status(200).json({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        });
+      }
+    );
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

@@ -253,7 +253,7 @@ exports.requestResetPassword = async (req, res, next) => {
     </div>`,
     };
 
-    // sgMail.send(msg);
+    sgMail.send(msg);
 
     await res.status(200).json({
       message: "Request reset code successfull ",

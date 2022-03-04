@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-const mongoose_delete = require("mongoose-delete");
 
 const noteSchema = new Schema(
   {
@@ -27,10 +26,15 @@ const noteSchema = new Schema(
     },
     archive: {
       type: Boolean,
-      default: false,
+    },
+    deleted: {
+      type: Boolean,
+    },
+    deletedAt: {
+      type: Date,
     },
   },
-  { timestamps: true, expires: "1m" }
+  { timestamps: true }
 );
-noteSchema.plugin(mongoose_delete, { deletedAt: true });
+
 module.exports = mongoose.model("Note", noteSchema);

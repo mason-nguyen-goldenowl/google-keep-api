@@ -22,6 +22,8 @@ const userSchema = new Schema(
         ref: "Note",
       },
     ],
+    reset_code: { type: String },
+    reset_passwordAt: { type: Date },
   },
   { timestamps: true }
 );

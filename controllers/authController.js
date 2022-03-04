@@ -1,7 +1,9 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const sgMail = require("@sendgrid/mail");
 
 const User = require("../models/User");
+const ResetCode = require("../models/ResetCode");
 
 const generateAccessToken = (user) => {
   return jwt.sign({ _id: user._id }, process.env.ACESS_SECRET_KEY, {
@@ -21,6 +23,8 @@ exports.signup = async (req, res, next) => {
 
     const oldUser = await User.findOne({ email });
 
+    sgMail.setApiKey(process.env.SENDGRID);
+
     if (oldUser) {
       return res.status(409).send("User Already Exist. Please Login");
     }
@@ -32,6 +36,48 @@ exports.signup = async (req, res, next) => {
       email: email,
       password: encryptedPassword,
     });
+
+    const msg = {
+      to: email,
+      from: process.env.SENDER,
+      subject: "Sending with SendGrid is Fun",
+      text: "and easy to do anywhere, even with Node.js",
+      html: `<div
+      style="
+        text-align: center;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        color: black;
+      "
+    >
+      <div style="background-color: #ffff; padding-top: 20px">
+        <div style="margin-bottom: 30px">
+          <img
+            src="https://www.learnersedge.com/hubfs/google%20keep%20image.jpg"
+            alt=""
+          />
+        </div>
+        <div>
+          <h2>Wellcome to Google Keep</h2>
+          <h3>Thanks for subscribing to Google Keep!!</h3>
+          <p>As promised, You can note everything in life at Google Keep</p>
+          <p>Wish you have a good experience</p>
+        </div>
+        <div style="background-color: #fdefc3; padding: 20px 0">
+          <h4 style="margin: 0">Contact Us:</h4>
+          <p>
+            <a href="#" style="color: black">google-kepp-clone.io</a>
+          </p>
+          <p style="margin-top: 30px">
+            2022 Google Keep Clone Ltd. All rights reserved
+          </p>
+        </div>
+      </div>
+    </div>`,
+    };
+
+    sgMail.send(msg);
 
     res.status(201).json(user);
   } catch (err) {
@@ -112,6 +158,138 @@ exports.refreshUserToken = async (req, res, next) => {
         });
       }
     );
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.requestResetPassword = async (req, res, next) => {
+  try {
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    let randomCode = "";
+
+    sgMail.setApiKey(process.env.SENDGRID);
+
+    const charactersLength = characters.length;
+
+    for (let i = 0; i < 8; i++) {
+      randomCode += characters.charAt(
+        Math.floor(Math.random() * charactersLength)
+      );
+    }
+
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    await ResetCode.create({
+      reset_code: randomCode,
+      user: user._id,
+      resetPassAt: Date.now(),
+    });
+
+    if (!user) {
+      const error = new Error("Invalid email");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    await User.findOneAndUpdate(
+      { email: email },
+      { $set: { reset_passwordAt: Date.now() } }
+    );
+
+    const msg = {
+      to: email,
+      from: process.env.SENDER,
+      subject: "Sending with SendGrid is Fun",
+      text: "and easy to do anywhere, even with Node.js",
+      html: `<div
+      style="text-align: center; box-sizing: border-box; margin: 0; padding: 0; color:black"
+    >
+      <div style="background-color: #ffff; padding-top: 20px">
+        <div style="margin-bottom: 30px">
+          <img
+            src="https://www.learnersedge.com/hubfs/google%20keep%20image.jpg"
+            alt=""
+          />
+        </div>
+        <div>
+          <h2>Need a quick reset?</h2>
+          <h3>Well all do sometimes,and that's okay</h3>
+          <p>
+            Reset your password by entrering the code below.<br><b>Code is only valid for 20 minutes</b>. If you didn't ask
+            for this,<br />
+            ignore this email
+          </p>
+          <div style="margin: 50px 0">
+          <span
+            style="
+              font-size: 24px;
+              font-weight: 700;
+              border: 1px solid;
+              width: 100%;
+              padding: 20px 30px;
+            "
+          >
+          ${randomCode}
+          </span>
+        </div>
+        </div>
+        <div style="background-color: #fdefc3; padding: 20px 0">
+          <h4 style="margin: 0">Contact Us:</h4>
+          <p>
+            <a href="#" style="color: black">google-kepp-clone.io</a>
+          </p>
+          <p style="margin-top: 10px">
+            2022 Google Keep Clone Ltd. All rights reserved
+          </p>
+        </div>
+      </div>
+    </div>`,
+    };
+
+    // sgMail.send(msg);
+
+    await res.status(200).json({
+      message: "Request reset code successfull ",
+      resetCode: randomCode,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { email, reset_code, new_password } = req.body;
+
+    if (!reset_code) {
+      return res.status(401).json("Please check your reset code");
+    }
+    const user = await User.findOne({ email });
+
+    const resetCode = await ResetCode.findOne({ reset_code });
+
+    if (resetCode && resetCode.user === user._id) {
+      encryptedPassword = await bcrypt.hash(new_password, 16);
+
+      await User.findOneAndUpdate(
+        { email: email },
+        { $set: { password: encryptedPassword, reset_passwordAt: undefined } }
+      );
+    }
+    await ResetCode.findOneAndRemove({ reset_code });
+    res.status(200).json({
+      message: "Reset password successfull ",
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

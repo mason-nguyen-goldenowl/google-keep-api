@@ -13,11 +13,13 @@ router.post("/edit", verify, noteController.editNote);
 
 router.put("/archive", verify, noteController.archiveNote);
 
-router.put("/unarchive", verify, noteController.unArchiveNote);
-
 router.put("/restore", verify, noteController.restoreNote);
 
 router.delete("/delete", verify, noteController.deleteNote);
+
+router.delete("/clear-remind", verify, noteController.clearRemind);
+
+router.delete("/remove", verify, noteController.removeNote);
 
 router.delete("/empty", verify, noteController.emptyTrash);
 

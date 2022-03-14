@@ -20,14 +20,14 @@ exports.createLabel = async (req, res, next) => {
   try {
     const { label_name } = req.body;
 
-    const label = await Label.create({
+    await Label.create({
       label_name: label_name,
       creator: req.userId,
     });
-
+    const newArrLabel = await Label.find({ creator: req.userId });
     await res.status(201).json({
       message: "Create label successfully!",
-      label,
+      newArrLabel,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -39,23 +39,26 @@ exports.createLabel = async (req, res, next) => {
 
 exports.editLabel = async (req, res, next) => {
   try {
-    const { label_name, label_id } = req.body;
+    const { label_name, label_id, labelChange } = req.body;
 
     const noteInLabel = await Note.find({ label_name: label_name });
 
     await noteInLabel.map((note) => {
-      note.label_name = label_name;
+      note.label_name = labelChange;
       note.save();
     });
 
     const labelUpdated = await Label.findOneAndUpdate(
-      { _id: label_id },
-      { $set: { label_name: label_name } }
+      { label_name: label_name },
+      { $set: { label_name: labelChange } }
     );
 
+    const newArrLabels = await Label.find({ creator: req.userId });
+    const newArrNote = await Note.find({ creator: req.userId });
     await res.status(201).json({
       message: "Edit label successfully!",
-      labelUpdated: labelUpdated,
+      newArrLabels,
+      newArrNote,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -72,18 +75,19 @@ exports.deleteLabel = async (req, res, next) => {
     const labelDelete = await Label.findOneAndRemove({
       label_name: label_name,
     });
-
+    console.log(label_name);
     const noteInLabel = await Note.find({ label_name: label_name });
 
     noteInLabel.map((note) => {
       note.label_name = null;
       note.save();
     });
-
+    const newArrLabels = await Label.find({ creator: req.userId });
+    const newArrNote = await Note.find({ creator: req.userId });
     await res.status(201).json({
       message: "Delete label successfully!",
-
-      noteInLabel,
+      newArrLabels,
+      newArrNote,
     });
   } catch (err) {
     if (!err.statusCode) {

@@ -3,14 +3,9 @@ const Schema = mongoose.Schema;
 
 const labelSchema = new Schema(
   {
-    label_name: { type: String, required: true, unique: true },
-    note: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Note",
-      },
-    ],
-    creator: { type: Schema.Types.ObjectId, ref: "User" },
+    label_name: { type: String, required: true },
+
+    creator: { type: Schema.Types.ObjectId, required: true, ref: "users" },
   },
   { timestamps: true }
 );

@@ -284,7 +284,6 @@ exports.resetPassword = async (req, res, next) => {
         { email: email },
         { $set: { password: encryptedPassword, reset_passwordAt: null } }
       );
-      console.log(newUser);
     }
     await ResetCode.findOneAndRemove({ reset_code });
     res.status(200).json({

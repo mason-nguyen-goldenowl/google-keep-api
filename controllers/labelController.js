@@ -1,4 +1,5 @@
 const Label = require("../models/Label");
+const { findOne } = require("../models/Note");
 const Note = require("../models/Note");
 
 exports.getLabel = async (req, res, next) => {
@@ -16,10 +17,27 @@ exports.getLabel = async (req, res, next) => {
   }
 };
 
+exports.getLabelName = async (req, res, next) => {
+  try {
+    const { label_id } = req.body;
+    const label = await Label.findOne({ _id: label_id });
+    res.status(200).json({ labelName: label.label_name });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 exports.createLabel = async (req, res, next) => {
   try {
     const { label_name } = req.body;
+    const label = await Label.findOne({ label_name, creator: req.userId });
 
+    if (label) {
+      return res.status(400).send("Label have already exist");
+    }
     await Label.create({
       label_name: label_name,
       creator: req.userId,
@@ -39,22 +57,16 @@ exports.createLabel = async (req, res, next) => {
 
 exports.editLabel = async (req, res, next) => {
   try {
-    const { label_name, label_id, labelChange } = req.body;
+    const { label_id, labelChange } = req.body;
 
-    const noteInLabel = await Note.find({ label_name: label_name });
-
-    await noteInLabel.map((note) => {
-      note.label_name = labelChange;
-      note.save();
-    });
-
-    const labelUpdated = await Label.findOneAndUpdate(
-      { label_name: label_name },
+    await Label.findOneAndUpdate(
+      { _id: label_id },
       { $set: { label_name: labelChange } }
     );
 
     const newArrLabels = await Label.find({ creator: req.userId });
     const newArrNote = await Note.find({ creator: req.userId });
+
     await res.status(201).json({
       message: "Edit label successfully!",
       newArrLabels,
@@ -70,16 +82,20 @@ exports.editLabel = async (req, res, next) => {
 
 exports.deleteLabel = async (req, res, next) => {
   try {
-    const { label_name } = req.body;
-
-    const labelDelete = await Label.findOneAndRemove({
-      label_name: label_name,
+    const { label_id } = req.body;
+    await Label.findOneAndRemove({
+      _id: label_id,
+      creator: req.userId,
     });
-    console.log(label_name);
-    const noteInLabel = await Note.find({ label_name: label_name });
+
+    const noteInLabel = await Note.find({
+      label_id: label_id,
+      creator: req.userId,
+    });
 
     noteInLabel.map((note) => {
       note.label_name = null;
+      note.label_id = null;
       note.save();
     });
     const newArrLabels = await Label.find({ creator: req.userId });

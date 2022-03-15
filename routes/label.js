@@ -6,6 +6,8 @@ const labelController = require("../controllers/labelController");
 
 router.get("/", verify, labelController.getLabel);
 
+router.post("/get-name", verify, labelController.getLabelName);
+
 router.post("/create", verify, labelController.createLabel);
 
 router.post("/edit", verify, labelController.editLabel);

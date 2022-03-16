@@ -95,6 +95,7 @@ exports.editNote = async (req, res, next) => {
       error.statusCode = 401;
       throw error;
     }
+
     if (label_name) {
       const label = await Label.findOne({ label_name, creator: req.userId });
 

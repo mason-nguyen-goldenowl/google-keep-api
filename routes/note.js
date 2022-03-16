@@ -19,6 +19,8 @@ router.delete("/delete", verify, noteController.deleteNote);
 
 router.delete("/clear-remind", verify, noteController.clearRemind);
 
+router.delete("/clear-label", verify, noteController.clearLabelName);
+
 router.delete("/remove", verify, noteController.removeNote);
 
 router.delete("/empty", verify, noteController.emptyTrash);

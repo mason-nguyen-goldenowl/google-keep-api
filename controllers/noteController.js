@@ -19,7 +19,7 @@ exports.getNote = async (req, res, next) => {
 
 exports.createNote = async (req, res, next) => {
   try {
-    const { title, content, label_id, remind } = req.body;
+    const { title, content, label_id, remind, label_name } = req.body;
 
     if (title.length === 0 && content.length === 0) {
       return res.status(400).send("Please check your request");
@@ -36,19 +36,46 @@ exports.createNote = async (req, res, next) => {
         remind: remind,
       });
     } else {
-      const note = await Note.create({
-        title: title,
-        content: content,
-        creator: req.userId,
-        remind: remind,
-      });
+      if (label_name) {
+        const label = await Label.findOne({ label_name });
+
+        if (!label) {
+          const label = await Label.create({
+            label_name: label_name,
+            creator: req.userId,
+          });
+          const note = await Note.create({
+            title: title,
+            content: content,
+            creator: req.userId,
+            label_id: label._id,
+            remind: remind,
+          });
+        } else {
+          const note = await Note.create({
+            title: title,
+            content: content,
+            creator: req.userId,
+            label_id: label._id,
+            remind: remind,
+          });
+        }
+      } else {
+        const note = await Note.create({
+          title: title,
+          content: content,
+          creator: req.userId,
+          remind: remind,
+        });
+      }
     }
 
+    const newArrLabel = await Label.find({ creator: req.userId });
     const newArrNote = await Note.find({ creator: req.userId });
 
     await res.status(201).json({
       message: "Create note successfully!",
-
+      newArrLabel,
       newArrNote: newArrNote,
     });
   } catch (err) {
@@ -61,23 +88,56 @@ exports.createNote = async (req, res, next) => {
 
 exports.editNote = async (req, res, next) => {
   try {
-    const { _id, title, content, creator, remind } = req.body;
+    const { _id, title, content, creator, remind, label_name } = req.body;
 
     if (creator != req.userId) {
       const error = new Error("Not authenticated.");
       error.statusCode = 401;
       throw error;
     }
+    if (label_name) {
+      const label = await Label.findOne({ label_name, creator: req.userId });
 
-    await Note.findByIdAndUpdate(
-      { _id: _id },
-      { $set: { title: title, content: content, remind: remind } }
-    );
-
+      if (label) {
+        await Note.findByIdAndUpdate(
+          { _id: _id },
+          {
+            $set: {
+              title: title,
+              content: content,
+              remind: remind,
+              label_id: label._id,
+            },
+          }
+        );
+      } else {
+        const newLabel = await Label.create({
+          label_name,
+          creator: req.userId,
+        });
+        await Note.findByIdAndUpdate(
+          { _id: _id },
+          {
+            $set: {
+              title: title,
+              content: content,
+              remind: remind,
+              label_id: newLabel._id,
+            },
+          }
+        );
+      }
+    } else {
+      await Note.findByIdAndUpdate(
+        { _id: _id },
+        { $set: { title: title, content: content, remind: remind } }
+      );
+    }
+    const newArrLabel = await Label.find({ creator: req.userId });
     const newArrNote = await Note.find({ creator: req.userId });
     await res
       .status(200)
-      .json({ message: "Note have been edited", newArrNote });
+      .json({ message: "Note have been edited", newArrNote, newArrLabel });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -146,6 +206,33 @@ exports.clearRemind = async (req, res, next) => {
     }
 
     await Note.findByIdAndUpdate({ _id: _id }, { $unset: { remind: "" } });
+
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Remind have been deleted", newArrNote: newArrNote });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.clearLabelName = async (req, res, next) => {
+  try {
+    const { _id, creator } = req.body;
+
+    if (creator != req.userId) {
+      const error = new Error("Not authenticated.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const note = await Note.findByIdAndUpdate(
+      { _id: _id },
+      { $unset: { label_id: "" } }
+    );
 
     const newArrNote = await Note.find({ creator: req.userId });
     await res

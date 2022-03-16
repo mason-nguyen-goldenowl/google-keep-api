@@ -276,7 +276,7 @@ exports.resetPassword = async (req, res, next) => {
     const user = await User.findOne({ email });
 
     const resetCode = await ResetCode.findOne({ reset_code });
-    console.log(resetCode);
+
     if (resetCode && resetCode.user.toString() === user._id.toString()) {
       encryptedPassword = await bcrypt.hash(new_password, 16);
 

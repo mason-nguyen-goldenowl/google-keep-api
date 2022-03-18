@@ -2,6 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
+const cookieParser = require("cookie-parser");
+
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -18,6 +21,18 @@ app.use((req, res, next) => {
 });
 
 app.use(bodyParser.json());
+app.use(cookieParser());
+
+app.use("/auth", authRoutes);
+
+app.use((error, req, res, next) => {
+  console.log(error);
+  const status = error.statusCode || 500;
+  const message = error.message;
+  const data = error.data;
+
+  res.status(status).json({ message: message, data: data });
+});
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("DB conected");

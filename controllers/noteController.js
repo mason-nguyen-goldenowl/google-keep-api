@@ -1,5 +1,4 @@
 const Note = require("../models/Note");
-const User = require("../models/User");
 const Label = require("../models/Label");
 
 exports.getNote = async (req, res, next) => {

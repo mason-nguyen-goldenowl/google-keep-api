@@ -1,5 +1,4 @@
 const Label = require("../models/Label");
-const { findOne } = require("../models/Note");
 const Note = require("../models/Note");
 
 exports.getLabel = async (req, res, next) => {

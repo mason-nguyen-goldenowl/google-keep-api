@@ -1,17 +1,24 @@
-exports.verify = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader) {
-    const token = authHeader.split(" ")[1];
+const jwt = require("jsonwebtoken");
 
-    jwt.verify(token, process.env.ACESS_SECRET_KEY, (err, user) => {
-      if (err) {
-        return res.status(403).json("Token is not valid!");
-      }
-
-      req.user = user;
-      next();
-    });
-  } else {
-    res.status(401).json("You are not authenticated!");
+module.exports = (req, res, next) => {
+  const authHeader = req.get("Authorization");
+  if (!authHeader) {
+    const error = new Error("Not authenticated.");
+    error.statusCode = 401;
+    throw error;
   }
+
+  const token = authHeader.split(" ")[1];
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(token, process.env.ACESS_SECRET_KEY);
+  } catch (err) {
+    const error = new Error("Not authenticated.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  req.userId = decodedToken.id;
+
+  next();
 };

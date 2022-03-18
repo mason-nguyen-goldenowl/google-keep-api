@@ -32,6 +32,7 @@ const noteSchema = new Schema(
     },
     deletedAt: {
       type: Date,
+      index: { expires: "7d" },
     },
   },
   { timestamps: true }

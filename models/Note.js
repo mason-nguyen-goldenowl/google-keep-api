@@ -20,9 +20,13 @@ const noteSchema = new Schema(
     remind: {
       type: Date,
     },
-    label: {
-      type: Schema.Types.ObjectId,
+    label_name: {
+      type: String,
       ref: "Label",
+    },
+    archive: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

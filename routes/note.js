@@ -15,4 +15,10 @@ router.put("/archive", verify, noteController.archiveNote);
 
 router.put("/unarchive", verify, noteController.unArchiveNote);
 
+router.put("/restore", verify, noteController.restoreNote);
+
+router.delete("/delete", verify, noteController.deleteNote);
+
+router.delete("/empty", verify, noteController.emptyTrash);
+
 module.exports = router;

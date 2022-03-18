@@ -11,6 +11,7 @@
   "author": "mason",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^7.6.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.2",
     "cookie-parser": "^1.4.6",
@@ -19,6 +20,8 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.2.3",
     "mongoose-delete": "^0.5.4",
+    "nodemailer": "^6.7.2",
+    "nodemailer-sendgrid-transport": "^0.2.0",
     "nodemon": "^2.0.15"
   }
 }

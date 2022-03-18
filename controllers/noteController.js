@@ -37,14 +37,16 @@ exports.createNote = async (req, res, next) => {
       creator: req.userId,
       label_name: label_name,
     });
+
     if (label_name) {
       const label = await Label.findOne({ label_name: label_name });
-      label.note.push(note);
+      label.note.push(note._id);
       label.save();
     }
 
-    const user = await User.findById(req.userId);
-    user.note.push(note);
+    const user = await User.findOne({ _id: req.userId });
+
+    user.note.push(note._id);
     user.save();
 
     await res.status(201).json({
@@ -104,7 +106,7 @@ exports.unArchiveNote = async (req, res, next) => {
 
     await Note.findByIdAndUpdate(
       { _id: note_id },
-      { $set: { archive: false } }
+      { $set: { archive: undefined } }
     );
 
     await res.status(200).json({ message: "Note have been unarchived" });
@@ -120,12 +122,16 @@ exports.deleteNote = async (req, res, next) => {
   try {
     const { note_id } = req.body;
 
-    const note = await Note.findById({ _id: note_id });
-    note.delete();
+    await Note.findOneAndUpdate(
+      { _id: note_id },
+      { $set: { deleted: true, deletedAt: Date.now() } }
+    );
 
-    await res
-      .status(200)
-      .json({ message: "Note have been deleted", note: note });
+    await Note.findOneAndUpdate(
+      { _id: note_id },
+      { $set: { deleted: true, deletedAt: Date.now() } }
+    );
+    await res.status(200).json({ message: "Note have been deleted" });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -138,12 +144,11 @@ exports.restoreNote = async (req, res, next) => {
   try {
     const { note_id } = req.body;
 
-    const note = await Note.findById({ _id: note_id });
-    note.restore();
-
-    await res
-      .status(200)
-      .json({ message: "Note have been restored", note: note });
+    Note.findOneAndUpdate(
+      { _id: note_id },
+      { $set: { deleted: undefined, deletedAt: undefined } }
+    );
+    await res.status(200).json({ message: "Note have been restored" });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -174,7 +179,7 @@ exports.emptyTrash = async (req, res, next) => {
       labelOfDeletedNote.save();
 
       const noteDeleteInUserIndex = user.note.indexOf(noteDelete._id);
-      console.log(noteDeleteInUserIndex);
+
       user.note.splice(noteDeleteInUserIndex, 1);
       user.save();
     });

@@ -37,7 +37,7 @@ app.use((error, req, res, next) => {
 
   res.status(status).json({ message: message, data: data });
 });
-
+app.get("/", (req, res) => res.send("Hello World!"));
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("DB conected");
 });

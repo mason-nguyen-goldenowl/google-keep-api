@@ -16,13 +16,7 @@ const userSchema = new Schema(
       required: true,
     },
     refresh_token: { type: String },
-    note: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Note",
-      },
-    ],
-    reset_code: { type: String },
+
     reset_passwordAt: { type: Date },
   },
   { timestamps: true }

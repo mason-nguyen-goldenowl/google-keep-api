@@ -1,5 +1,4 @@
 const Note = require("../models/Note");
-const User = require("../models/User");
 const Label = require("../models/Label");
 
 exports.getNote = async (req, res, next) => {
@@ -19,40 +18,64 @@ exports.getNote = async (req, res, next) => {
 
 exports.createNote = async (req, res, next) => {
   try {
-    const { title, content, label_name } = req.body;
+    const { title, content, label_id, remind, label_name } = req.body;
 
-    if (label_name) {
-      let label = await Label.findOne({ label_name });
+    if (title.length === 0 && content.length === 0) {
+      return res.status(400).send("Please check your request");
+    }
 
-      if (!label) {
-        label = await Label.create({
-          label_name: label_name,
+    if (label_id) {
+      let label = await Label.findOne({ _id: label_id });
+
+      const note = await Note.create({
+        title: title,
+        content: content,
+        creator: req.userId,
+        label_id: label._id,
+        remind: remind,
+      });
+    } else {
+      if (label_name) {
+        const label = await Label.findOne({ label_name });
+
+        if (!label) {
+          const label = await Label.create({
+            label_name: label_name,
+            creator: req.userId,
+          });
+          const note = await Note.create({
+            title: title,
+            content: content,
+            creator: req.userId,
+            label_id: label._id,
+            remind: remind,
+          });
+        } else {
+          const note = await Note.create({
+            title: title,
+            content: content,
+            creator: req.userId,
+            label_id: label._id,
+            remind: remind,
+          });
+        }
+      } else {
+        const note = await Note.create({
+          title: title,
+          content: content,
           creator: req.userId,
+          remind: remind,
         });
       }
     }
-    const note = await Note.create({
-      title: title,
-      content: content,
-      creator: req.userId,
-      label_name: label_name,
-    });
 
-    if (label_name) {
-      const label = await Label.findOne({ label_name: label_name });
-      label.note.push(note._id);
-      label.save();
-    }
-
-    const user = await User.findOne({ _id: req.userId });
-
-    user.note.push(note._id);
-    user.save();
+    const newArrLabel = await Label.find({ creator: req.userId });
+    const newArrNote = await Note.find({ creator: req.userId });
 
     await res.status(201).json({
       message: "Create note successfully!",
-      note: note,
-      label_name: label_name,
+      newArrLabel,
+      newArrNote: newArrNote,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -64,7 +87,7 @@ exports.createNote = async (req, res, next) => {
 
 exports.editNote = async (req, res, next) => {
   try {
-    const { note_id, title, content, creator } = req.body;
+    const { _id, title, content, creator, remind, label_name } = req.body;
 
     if (creator != req.userId) {
       const error = new Error("Not authenticated.");
@@ -72,11 +95,49 @@ exports.editNote = async (req, res, next) => {
       throw error;
     }
 
-    await Note.findByIdAndUpdate(
-      { _id: note_id },
-      { $set: { title: title, content: content } }
-    );
-    await res.status(200).json({ message: "Note have been edited" });
+    if (label_name) {
+      const label = await Label.findOne({ label_name, creator: req.userId });
+
+      if (label) {
+        await Note.findByIdAndUpdate(
+          { _id: _id },
+          {
+            $set: {
+              title: title,
+              content: content,
+              remind: remind,
+              label_id: label._id,
+            },
+          }
+        );
+      } else {
+        const newLabel = await Label.create({
+          label_name,
+          creator: req.userId,
+        });
+        await Note.findByIdAndUpdate(
+          { _id: _id },
+          {
+            $set: {
+              title: title,
+              content: content,
+              remind: remind,
+              label_id: newLabel._id,
+            },
+          }
+        );
+      }
+    } else {
+      await Note.findByIdAndUpdate(
+        { _id: _id },
+        { $set: { title: title, content: content, remind: remind } }
+      );
+    }
+    const newArrLabel = await Label.find({ creator: req.userId });
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Note have been edited", newArrNote, newArrLabel });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -89,27 +150,23 @@ exports.archiveNote = async (req, res, next) => {
   try {
     const { note_id } = req.body;
 
-    await Note.findByIdAndUpdate({ _id: note_id }, { $set: { archive: true } });
+    const noteArchive = await Note.findOne({ _id: note_id });
 
-    await res.status(200).json({ message: "Note have been archived" });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
+    if (noteArchive.archive === true) {
+      await Note.findByIdAndUpdate(
+        { _id: note_id },
+        { $set: { archive: false } }
+      );
+    } else {
+      await Note.findByIdAndUpdate(
+        { _id: note_id },
+        { $set: { archive: true } }
+      );
     }
-    next(err);
-  }
-};
-
-exports.unArchiveNote = async (req, res, next) => {
-  try {
-    const { note_id } = req.body;
-
-    await Note.findByIdAndUpdate(
-      { _id: note_id },
-      { $set: { archive: undefined } }
-    );
-
-    await res.status(200).json({ message: "Note have been unarchived" });
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Note have been archived", newArrNote: newArrNote });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -126,12 +183,80 @@ exports.deleteNote = async (req, res, next) => {
       { _id: note_id },
       { $set: { deleted: true, deletedAt: Date.now() } }
     );
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Note have been deleted", newArrNote: newArrNote });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
 
-    await Note.findOneAndUpdate(
-      { _id: note_id },
-      { $set: { deleted: true, deletedAt: Date.now() } }
+exports.clearRemind = async (req, res, next) => {
+  try {
+    const { _id, creator } = req.body;
+
+    if (creator != req.userId) {
+      const error = new Error("Not authenticated.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    await Note.findByIdAndUpdate({ _id: _id }, { $unset: { remind: "" } });
+
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Remind have been deleted", newArrNote: newArrNote });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.clearLabelName = async (req, res, next) => {
+  try {
+    const { _id, creator } = req.body;
+
+    if (creator != req.userId) {
+      const error = new Error("Not authenticated.");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const note = await Note.findByIdAndUpdate(
+      { _id: _id },
+      { $unset: { label_id: "" } }
     );
-    await res.status(200).json({ message: "Note have been deleted" });
+
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Remind have been deleted", newArrNote: newArrNote });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.removeNote = async (req, res, next) => {
+  try {
+    const { note_id } = req.body;
+
+    await Note.findOneAndRemove({ _id: note_id });
+
+    const newArrNote = await Note.find({ creator: req.userId });
+
+    await res
+      .status(200)
+      .json({ message: "Note have been removed", newArrNote: newArrNote });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -144,11 +269,14 @@ exports.restoreNote = async (req, res, next) => {
   try {
     const { note_id } = req.body;
 
-    Note.findOneAndUpdate(
+    await Note.findOneAndUpdate(
       { _id: note_id },
-      { $set: { deleted: undefined, deletedAt: undefined } }
+      { $set: { deleted: false, deletedAt: null } }
     );
-    await res.status(200).json({ message: "Note have been restored" });
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Note have been restored", newArrNote: newArrNote });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -159,34 +287,13 @@ exports.restoreNote = async (req, res, next) => {
 
 exports.emptyTrash = async (req, res, next) => {
   try {
-    const notes = await Note.find({ deleted: true });
-    const user = await User.findOne({ _id: req.userId });
+    const noteTrashId = req.body;
+    await Note.deleteMany({ _id: { $in: noteTrashId } });
 
-    let notesTrashId = [];
-
-    notes.map(async (noteDelete) => {
-      notesTrashId.push(noteDelete._id.toString());
-
-      const labelOfDeletedNote = await Label.findOne({
-        label_name: noteDelete.label_name,
-      });
-
-      const noteLabelIndex = labelOfDeletedNote.note.indexOf(
-        noteDelete._id.toString()
-      );
-
-      labelOfDeletedNote.note.splice(noteLabelIndex, 1);
-      labelOfDeletedNote.save();
-
-      const noteDeleteInUserIndex = user.note.indexOf(noteDelete._id);
-
-      user.note.splice(noteDeleteInUserIndex, 1);
-      user.save();
-    });
-
-    await Note.deleteMany({ deleted: true });
-
-    await res.status(200).json({ message: "Trash have been empty" });
+    const newArrNote = await Note.find({ creator: req.userId });
+    await res
+      .status(200)
+      .json({ message: "Trash have been empty", newArrNote: newArrNote });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

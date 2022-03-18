@@ -94,14 +94,14 @@ exports.login = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user) {
       const error = new Error("Invalid email");
-      error.statusCode = 401;
+      error.statusCode = 409;
       throw error;
     }
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       const error = new Error("Wrong password");
-      error.statusCode = 401;
+      error.statusCode = 409;
       throw error;
     }
 
@@ -112,16 +112,14 @@ exports.login = async (req, res, next) => {
       { _id: user._id },
       { $set: { refresh_token: refreshToken } }
     );
-    await res.cookie("access_token", accessToken, {
-      maxAge: 3600000,
+
+    await res.status(200).json({
+      accessToken,
+      refreshToken,
+      userId: user._id.toString(),
+      userFname: user.full_name,
+      email: user.email,
     });
-    await res.cookie("refresh_token", refreshToken, {
-      maxAge: 604800000,
-      httpOnly: true,
-    });
-    await res
-      .status(200)
-      .json({ accessToken, refreshToken, userId: user._id.toString() });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -132,7 +130,7 @@ exports.login = async (req, res, next) => {
 
 exports.refreshUserToken = async (req, res, next) => {
   try {
-    const refreshToken = req.body.token;
+    const { refreshToken } = req.body;
     if (!refreshToken)
       return res.status(401).json("You are not authenticated!");
     jwt.verify(
@@ -144,7 +142,7 @@ exports.refreshUserToken = async (req, res, next) => {
         const newAccessToken = generateAccessToken(user);
         const newRefreshToken = generateRefreshToken(user);
 
-        await User.findByIdAndUpdate(
+        await User.findOneAndUpdate(
           { _id: user.id },
           { $set: { refresh_token: newRefreshToken } }
         );
@@ -185,18 +183,19 @@ exports.requestResetPassword = async (req, res, next) => {
 
     const { email } = req.body;
     const user = await User.findOne({ email });
-
-    await ResetCode.create({
-      reset_code: randomCode,
-      user: user._id,
-      resetPassAt: Date.now(),
-    });
+    await ResetCode.findOneAndRemove({ user: user._id });
 
     if (!user) {
       const error = new Error("Invalid email");
       error.statusCode = 401;
       throw error;
     }
+
+    await ResetCode.create({
+      reset_code: randomCode,
+      user: user._id,
+      resetPassAt: Date.now(),
+    });
 
     await User.findOneAndUpdate(
       { email: email },
@@ -278,12 +277,12 @@ exports.resetPassword = async (req, res, next) => {
 
     const resetCode = await ResetCode.findOne({ reset_code });
 
-    if (resetCode && resetCode.user === user._id) {
+    if (resetCode && resetCode.user.toString() === user._id.toString()) {
       encryptedPassword = await bcrypt.hash(new_password, 16);
 
-      await User.findOneAndUpdate(
+      const newUser = await User.findOneAndUpdate(
         { email: email },
-        { $set: { password: encryptedPassword, reset_passwordAt: undefined } }
+        { $set: { password: encryptedPassword, reset_passwordAt: null } }
       );
     }
     await ResetCode.findOneAndRemove({ reset_code });

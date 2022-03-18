@@ -5,24 +5,24 @@ const noteSchema = new Schema(
   {
     title: {
       type: String,
-      required: true,
       default: "",
     },
     content: {
       type: String,
-      required: true,
       default: "",
     },
     creator: {
       type: Schema.Types.ObjectId,
       required: true,
+      ref: "users",
     },
     remind: {
       type: Date,
     },
-    label_name: {
-      type: String,
-      ref: "Label",
+
+    label_id: {
+      type: Schema.Types.ObjectId,
+      ref: "labels",
     },
     archive: {
       type: Boolean,

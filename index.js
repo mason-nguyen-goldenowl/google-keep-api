@@ -13,7 +13,7 @@ const app = express();
 dotenv.config();
 
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
     "Access-Control-Allow-Methods",
     "OPTIONS, GET, POST, PUT, PATCH, DELETE"
@@ -28,7 +28,6 @@ app.use(cookieParser());
 app.use("/auth", authRoutes);
 app.use("/note", noteRoutes);
 app.use("/label", labelRoutes);
-
 app.use((error, req, res, next) => {
   console.log(error);
   const status = error.statusCode || 500;
@@ -37,6 +36,7 @@ app.use((error, req, res, next) => {
 
   res.status(status).json({ message: message, data: data });
 });
+app.get("/", (req, res) => res.send("Hello World!"));
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log("DB conected");

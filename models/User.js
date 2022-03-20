@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const userSchema = new Schema(
   {
-    full_name: {
+    fullName: {
       type: String,
       required: true,
     },
@@ -15,9 +15,9 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    refresh_token: { type: String },
+    refreshToken: { type: String },
 
-    reset_passwordAt: { type: Date },
+    resetPasswordAt: { type: Date },
   },
   { timestamps: true }
 );

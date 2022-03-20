@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const labelSchema = new Schema(
   {
-    label_name: { type: String, required: true },
+    labelName: { type: String, required: true },
 
     creator: { type: Schema.Types.ObjectId, required: true, ref: "users" },
   },

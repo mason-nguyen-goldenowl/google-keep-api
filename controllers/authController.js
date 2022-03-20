@@ -32,7 +32,7 @@ exports.signup = async (req, res, next) => {
     encryptedPassword = await bcrypt.hash(password, 16);
 
     const user = await User.create({
-      full_name,
+      fullName: full_name,
       email: email,
       password: encryptedPassword,
     });
@@ -110,14 +110,14 @@ exports.login = async (req, res, next) => {
 
     await User.findByIdAndUpdate(
       { _id: user._id },
-      { $set: { refresh_token: refreshToken } }
+      { $set: { refreshToken: refreshToken } }
     );
 
     await res.status(200).json({
       accessToken,
       refreshToken,
       userId: user._id.toString(),
-      userFname: user.full_name,
+      userFname: user.fullName,
       email: user.email,
     });
   } catch (err) {
@@ -192,14 +192,14 @@ exports.requestResetPassword = async (req, res, next) => {
     }
 
     await ResetCode.create({
-      reset_code: randomCode,
+      resetCode: randomCode,
       user: user._id,
       resetPassAt: Date.now(),
     });
 
     await User.findOneAndUpdate(
       { email: email },
-      { $set: { reset_passwordAt: Date.now() } }
+      { $set: { resetPasswordAt: Date.now() } }
     );
 
     const msg = {
@@ -275,7 +275,7 @@ exports.resetPassword = async (req, res, next) => {
     }
     const user = await User.findOne({ email });
 
-    const resetCode = await ResetCode.findOne({ reset_code });
+    const resetCode = await ResetCode.findOne({ resetCode: reset_code });
 
     if (resetCode && resetCode.user.toString() === user._id.toString()) {
       encryptedPassword = await bcrypt.hash(new_password, 16);
@@ -285,7 +285,7 @@ exports.resetPassword = async (req, res, next) => {
         { $set: { password: encryptedPassword, reset_passwordAt: null } }
       );
     }
-    await ResetCode.findOneAndRemove({ reset_code });
+    await ResetCode.findOneAndRemove({ resetCode: reset_code });
     res.status(200).json({
       message: "Reset password successfull ",
     });

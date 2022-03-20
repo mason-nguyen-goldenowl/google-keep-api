@@ -28,7 +28,6 @@ app.use(cookieParser());
 app.use("/auth", authRoutes);
 app.use("/note", noteRoutes);
 app.use("/label", labelRoutes);
-
 app.use((error, req, res, next) => {
   console.log(error);
   const status = error.statusCode || 500;

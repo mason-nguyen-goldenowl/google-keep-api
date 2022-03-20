@@ -20,7 +20,7 @@ const noteSchema = new Schema(
       type: Date,
     },
 
-    label_id: {
+    labelId: {
       type: Schema.Types.ObjectId,
       ref: "labels",
     },

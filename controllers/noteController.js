@@ -31,23 +31,23 @@ exports.createNote = async (req, res, next) => {
         title: title,
         content: content,
         creator: req.userId,
-        label_id: label._id,
+        labelId: label._id,
         remind: remind,
       });
     } else {
       if (label_name) {
-        const label = await Label.findOne({ label_name });
+        const label = await Label.findOne({ labelName: label_name });
 
         if (!label) {
           const label = await Label.create({
-            label_name: label_name,
+            labelName: label_name,
             creator: req.userId,
           });
           const note = await Note.create({
             title: title,
             content: content,
             creator: req.userId,
-            label_id: label._id,
+            labelId: label._id,
             remind: remind,
           });
         } else {
@@ -55,7 +55,7 @@ exports.createNote = async (req, res, next) => {
             title: title,
             content: content,
             creator: req.userId,
-            label_id: label._id,
+            labelId: label._id,
             remind: remind,
           });
         }
@@ -96,7 +96,10 @@ exports.editNote = async (req, res, next) => {
     }
 
     if (label_name) {
-      const label = await Label.findOne({ label_name, creator: req.userId });
+      const label = await Label.findOne({
+        labelName: label_name,
+        creator: req.userId,
+      });
 
       if (label) {
         await Note.findByIdAndUpdate(
@@ -106,7 +109,7 @@ exports.editNote = async (req, res, next) => {
               title: title,
               content: content,
               remind: remind,
-              label_id: label._id,
+              labelId: label._id,
             },
           }
         );
@@ -122,7 +125,7 @@ exports.editNote = async (req, res, next) => {
               title: title,
               content: content,
               remind: remind,
-              label_id: newLabel._id,
+              labelId: newLabel._id,
             },
           }
         );
@@ -231,7 +234,7 @@ exports.clearLabelName = async (req, res, next) => {
 
     const note = await Note.findByIdAndUpdate(
       { _id: _id },
-      { $unset: { label_id: "" } }
+      { $unset: { labelId: "" } }
     );
 
     const newArrNote = await Note.find({ creator: req.userId });

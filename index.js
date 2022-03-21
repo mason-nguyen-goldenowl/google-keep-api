@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
@@ -7,8 +8,11 @@ const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth");
 const noteRoutes = require("./routes/note");
 const labelRoutes = require("./routes/label");
+const multer = require("multer");
 
 const app = express();
+
+// const upload = multer({ dest: "./images/" });
 
 dotenv.config();
 
@@ -22,8 +26,11 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(bodyParser.json());
 app.use(cookieParser());
+
+app.use(bodyParser.json());
+
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 app.use("/auth", authRoutes);
 app.use("/note", noteRoutes);

@@ -1,10 +1,18 @@
 const Note = require("../models/Note");
 const Label = require("../models/Label");
+const fs = require("fs");
+const path = require("path");
+
+const clearImage = (filePath) => {
+  filePath = path.join(__dirname, "..", filePath);
+  fs.unlink(filePath, (err) => console.log(err));
+};
 
 exports.getNote = async (req, res, next) => {
   try {
     const notes = await Note.find({ creator: req.userId });
-    res.status(200).json({
+
+    await res.status(200).json({
       message: "Fetched notes successfully",
       notes: notes,
     });
@@ -16,16 +24,38 @@ exports.getNote = async (req, res, next) => {
   }
 };
 
+exports.searchNote = async (req, res, next) => {
+  try {
+    const { keyWord } = req.body;
+
+    const regex = new RegExp(keyWord);
+    const notes = await Note.find({ title: regex });
+
+    await res.status(200).json({
+      message: "Fetched notes successfully",
+      notes: notes,
+    });
+  } catch (error) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 exports.createNote = async (req, res, next) => {
   try {
-    const { title, content, label_id, remind, label_name } = req.body;
+    const { title, content, labelId, remind, labelName } = req.body;
 
+    const imageUrl = req.file?.path;
     if (title.length === 0 && content.length === 0) {
       return res.status(400).send("Please check your request");
     }
 
-    if (label_id) {
-      let label = await Label.findOne({ _id: label_id });
+    if (labelId) {
+      let label = await Label.findOne({
+        _id: labelId,
+      });
 
       const note = await Note.create({
         title: title,
@@ -33,14 +63,15 @@ exports.createNote = async (req, res, next) => {
         creator: req.userId,
         labelId: label._id,
         remind: remind,
+        imageUrl: imageUrl,
       });
     } else {
-      if (label_name) {
-        const label = await Label.findOne({ labelName: label_name });
+      if (labelName) {
+        const label = await Label.findOne({ labelName: labelName });
 
         if (!label) {
           const label = await Label.create({
-            labelName: label_name,
+            labelName: labelName,
             creator: req.userId,
           });
           const note = await Note.create({
@@ -49,6 +80,7 @@ exports.createNote = async (req, res, next) => {
             creator: req.userId,
             labelId: label._id,
             remind: remind,
+            imageUrl: imageUrl,
           });
         } else {
           const note = await Note.create({
@@ -57,6 +89,7 @@ exports.createNote = async (req, res, next) => {
             creator: req.userId,
             labelId: label._id,
             remind: remind,
+            imageUrl: imageUrl,
           });
         }
       } else {
@@ -65,6 +98,7 @@ exports.createNote = async (req, res, next) => {
           content: content,
           creator: req.userId,
           remind: remind,
+          imageUrl: imageUrl,
         });
       }
     }
@@ -87,17 +121,22 @@ exports.createNote = async (req, res, next) => {
 
 exports.editNote = async (req, res, next) => {
   try {
-    const { _id, title, content, creator, remind, label_name } = req.body;
+    const { _id, title, content, creator, remind, labelName } = req.body;
+    const imageUrl = req.file?.path;
 
-    if (creator != req.userId) {
+    const note = await Note.findOne({ _id: _id });
+    if (note.imageUrl) {
+      clearImage(note.imageUrl);
+    }
+    if (creator != req.userId.toString()) {
       const error = new Error("Not authenticated.");
       error.statusCode = 401;
       throw error;
     }
 
-    if (label_name) {
+    if (labelName) {
       const label = await Label.findOne({
-        labelName: label_name,
+        labelName: labelName,
         creator: req.userId,
       });
 
@@ -110,12 +149,13 @@ exports.editNote = async (req, res, next) => {
               content: content,
               remind: remind,
               labelId: label._id,
+              imageUrl: imageUrl,
             },
           }
         );
       } else {
         const newLabel = await Label.create({
-          label_name,
+          labelName,
           creator: req.userId,
         });
         await Note.findByIdAndUpdate(
@@ -126,6 +166,7 @@ exports.editNote = async (req, res, next) => {
               content: content,
               remind: remind,
               labelId: newLabel._id,
+              imageUrl: imageUrl,
             },
           }
         );
@@ -133,7 +174,14 @@ exports.editNote = async (req, res, next) => {
     } else {
       await Note.findByIdAndUpdate(
         { _id: _id },
-        { $set: { title: title, content: content, remind: remind } }
+        {
+          $set: {
+            title: title,
+            content: content,
+            remind: remind,
+            imageUrl: imageUrl,
+          },
+        }
       );
     }
     const newArrLabel = await Label.find({ creator: req.userId });
@@ -247,6 +295,25 @@ exports.clearLabelName = async (req, res, next) => {
     }
     next(err);
   }
+};
+
+exports.clearImage = async (req, res, next) => {
+  const { _id, creator } = req.body;
+  if (creator != req.userId) {
+    const error = new Error("Not authenticated.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const note = await Note.findOne({ _id: _id });
+  if (note.imageUrl) {
+    clearImage(note.imageUrl);
+  }
+  await Note.findByIdAndUpdate({ _id: _id }, { $unset: { imageUrl: "" } });
+  const newArrNote = await Note.find({ creator: req.userId });
+  await res
+    .status(200)
+    .json({ message: "Image have been deleted", newArrNote: newArrNote });
 };
 
 exports.removeNote = async (req, res, next) => {

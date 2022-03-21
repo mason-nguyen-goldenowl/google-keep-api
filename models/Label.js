@@ -5,7 +5,7 @@ const labelSchema = new Schema(
   {
     labelName: { type: String, required: true },
 
-    creator: { type: Schema.Types.ObjectId, required: true, ref: "users" },
+    creator: { type: Schema.Types.ObjectId, required: true, ref: "User" },
   },
   { timestamps: true }
 );

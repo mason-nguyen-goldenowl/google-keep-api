@@ -21,6 +21,7 @@ exports.getNote = async (req, res, next) => {
           title: note.title,
           content: note.content,
         });
+
         if (remainingTime > 0) {
           setTimeout(() => {
             req.sendNoti.sendNotification(sub, payload);

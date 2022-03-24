@@ -8,11 +8,8 @@ const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth");
 const noteRoutes = require("./routes/note");
 const labelRoutes = require("./routes/label");
-const multer = require("multer");
 
 const app = express();
-
-// const upload = multer({ dest: "./images/" });
 
 dotenv.config();
 

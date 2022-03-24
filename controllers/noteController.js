@@ -11,6 +11,23 @@ const clearImage = (filePath) => {
 exports.getNote = async (req, res, next) => {
   try {
     const notes = await Note.find({ creator: req.userId });
+    const sub = req.body;
+    notes.map((note) => {
+      if (note.remind) {
+        let now = new Date().getTime();
+        let remindTime = new Date(note.remind).getTime();
+        let remainingTime = remindTime - now;
+        const payload = JSON.stringify({
+          title: note.title,
+          content: note.content,
+        });
+        if (remainingTime > 0) {
+          setTimeout(() => {
+            req.sendNoti.sendNotification(sub, payload);
+          }, remainingTime);
+        }
+      }
+    });
 
     await res.status(200).json({
       message: "Fetched notes successfully",

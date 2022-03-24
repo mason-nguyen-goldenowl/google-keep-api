@@ -3,10 +3,11 @@ const verify = require("../middleware/verify");
 
 const noteController = require("../controllers/noteController");
 const uploadFile = require("../middleware/uploadFile");
+const webPush = require("../middleware/webPush");
 
 const router = express.Router();
 
-router.get("/", verify, noteController.getNote);
+router.post("/", verify, webPush, noteController.getNote);
 
 router.post("/search", verify, noteController.searchNote);
 

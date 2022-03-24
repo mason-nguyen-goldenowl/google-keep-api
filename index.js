@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
@@ -22,8 +23,11 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(bodyParser.json());
 app.use(cookieParser());
+
+app.use(bodyParser.json());
+
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 app.use("/auth", authRoutes);
 app.use("/note", noteRoutes);

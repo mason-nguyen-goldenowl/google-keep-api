@@ -14,15 +14,16 @@ const noteSchema = new Schema(
     creator: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: "users",
+      ref: "User",
     },
     remind: {
       type: Date,
     },
-
+    imageUrl: {
+      type: String,
+    },
     labelId: {
       type: Schema.Types.ObjectId,
-      ref: "labels",
     },
     archive: {
       type: Boolean,

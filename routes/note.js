@@ -2,14 +2,28 @@ const express = require("express");
 const verify = require("../middleware/verify");
 
 const noteController = require("../controllers/noteController");
+const uploadFile = require("../middleware/uploadFile");
+const webPush = require("../middleware/webPush");
 
 const router = express.Router();
 
-router.get("/", verify, noteController.getNote);
+router.post("/", verify, webPush, noteController.getNote);
 
-router.post("/create", verify, noteController.createNote);
+router.post("/search", verify, noteController.searchNote);
 
-router.post("/edit", verify, noteController.editNote);
+router.post(
+  "/create",
+  verify,
+  uploadFile.single("image"),
+  noteController.createNote
+);
+
+router.post(
+  "/edit",
+  verify,
+  uploadFile.single("image"),
+  noteController.editNote
+);
 
 router.put("/archive", verify, noteController.archiveNote);
 
@@ -21,8 +35,12 @@ router.delete("/clear-remind", verify, noteController.clearRemind);
 
 router.delete("/clear-label", verify, noteController.clearLabelName);
 
+router.delete("/clear-image", verify, noteController.clearImage);
+
 router.delete("/remove", verify, noteController.removeNote);
 
 router.delete("/empty", verify, noteController.emptyTrash);
+
+// router.post("/uploads", uploadFile.single("image"));
 
 module.exports = router;

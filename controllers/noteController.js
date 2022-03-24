@@ -11,7 +11,7 @@ const clearImage = (filePath) => {
 exports.getNote = async (req, res, next) => {
   try {
     const notes = await Note.find({ creator: req.userId });
-    const sub = req.body;
+    const sub = req.get("Subcription");
     notes.map((note) => {
       if (note.remind) {
         let now = new Date().getTime();
@@ -24,7 +24,7 @@ exports.getNote = async (req, res, next) => {
 
         if (remainingTime > 0) {
           setTimeout(() => {
-            req.sendNoti.sendNotification(sub, payload);
+            req.sendNoti.sendNotification(JSON.parse(sub), payload);
           }, remainingTime);
         }
       }
@@ -143,9 +143,7 @@ exports.editNote = async (req, res, next) => {
     const imageUrl = req.file?.path;
 
     const note = await Note.findOne({ _id: _id });
-    if (note.imageUrl) {
-      clearImage(note.imageUrl);
-    }
+
     if (creator != req.userId.toString()) {
       const error = new Error("Not authenticated.");
       error.statusCode = 401;

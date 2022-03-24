@@ -7,7 +7,7 @@ const webPush = require("../middleware/webPush");
 
 const router = express.Router();
 
-router.post("/", verify, webPush, noteController.getNote);
+router.get("/", verify, webPush, noteController.getNote);
 
 router.post("/search", verify, noteController.searchNote);
 

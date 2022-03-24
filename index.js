@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-
+const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const noteRoutes = require("./routes/note");
 const labelRoutes = require("./routes/label");
@@ -12,7 +12,7 @@ const labelRoutes = require("./routes/label");
 const app = express();
 
 dotenv.config();
-
+app.use(cors());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(

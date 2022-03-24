@@ -47,7 +47,7 @@ exports.searchNote = async (req, res, next) => {
     const { keyWord } = req.body;
 
     const regex = new RegExp(keyWord);
-    const notes = await Note.find({ title: regex });
+    const notes = await Note.find({ title: regex, creator: req.userId });
 
     await res.status(200).json({
       message: "Fetched notes successfully",

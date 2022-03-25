@@ -84,14 +84,14 @@ exports.editLabel = async (req, res, next) => {
 
 exports.deleteLabel = async (req, res, next) => {
   try {
-    const { label_id } = req.body;
+    const { labelId } = req.body;
     await Label.findOneAndRemove({
-      _id: label_id,
+      _id: labelId,
       creator: req.userId,
     });
 
     const noteInLabel = await Note.find({
-      label_id: label_id,
+      labelId: labelId,
       creator: req.userId,
     });
 

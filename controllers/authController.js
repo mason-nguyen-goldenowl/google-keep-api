@@ -1,48 +1,48 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const sgMail = require("@sendgrid/mail");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import sgMail from "@sendgrid/mail";
 
-const User = require("../models/User");
-const ResetCode = require("../models/ResetCode");
+import User from "../models/User.js";
+import ResetCode from "../models/ResetCode.js";
 
 const generateAccessToken = (user) => {
-  return jwt.sign({ _id: user._id }, process.env.ACESS_SECRET_KEY, {
-    expiresIn: "1h",
-  });
+	return jwt.sign({ _id: user._id }, process.env.ACESS_SECRET_KEY, {
+		expiresIn: "1h",
+	});
 };
 
 const generateRefreshToken = (user) => {
-  return jwt.sign({ _id: user._id }, process.env.REFRESH_SECRET_KEY, {
-    expiresIn: "7d",
-  });
+	return jwt.sign({ _id: user._id }, process.env.REFRESH_SECRET_KEY, {
+		expiresIn: "7d",
+	});
 };
 
-exports.signup = async (req, res, next) => {
-  try {
-    const { full_name, email, password } = req.body;
+export const signup = async (req, res, next) => {
+	try {
+		const { full_name, email, password } = req.body;
 
-    const oldUser = await User.findOne({ email });
+		const oldUser = await User.findOne({ email });
 
-    sgMail.setApiKey(process.env.SENDGRID);
+		sgMail.setApiKey(process.env.SENDGRID);
 
-    if (oldUser) {
-      return res.status(409).send("User Already Exist. Please Login");
-    }
+		if (oldUser) {
+			return res.status(409).send("User Already Exist. Please Login");
+		}
 
-    encryptedPassword = await bcrypt.hash(password, 16);
+		const encryptedPassword = await bcrypt.hash(password, 16);
 
-    const user = await User.create({
-      fullName: full_name,
-      email: email,
-      password: encryptedPassword,
-    });
+		const user = await User.create({
+			fullName: full_name,
+			email,
+			password: encryptedPassword,
+		});
 
-    const msg = {
-      to: email,
-      from: process.env.SENDER,
-      subject: "Sending with SendGrid is Fun",
-      text: "and easy to do anywhere, even with Node.js",
-      html: `<div
+		const msg = {
+			to: email,
+			from: process.env.SENDER,
+			subject: "Sending with SendGrid is Fun",
+			text: "and easy to do anywhere, even with Node.js",
+			html: `<div
       style="
         text-align: center;
         box-sizing: border-box;
@@ -75,139 +75,139 @@ exports.signup = async (req, res, next) => {
         </div>
       </div>
     </div>`,
-    };
+		};
 
-    sgMail.send(msg);
+		sgMail.send(msg);
 
-    res.status(201).json(user);
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
+		res.status(201).json(user);
+	} catch (err) {
+		if (!err.statusCode) {
+			err.statusCode = 500;
+		}
+		next(err);
+	}
 };
 
-exports.login = async (req, res, next) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      const error = new Error("Invalid email");
-      error.statusCode = 409;
-      throw error;
-    }
-    const isMatch = await bcrypt.compare(password, user.password);
+export const login = async (req, res, next) => {
+	const { email, password } = req.body;
+	try {
+		const user = await User.findOne({ email });
+		if (!user) {
+			const error = new Error("Invalid email");
+			error.statusCode = 409;
+			throw error;
+		}
+		const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isMatch) {
-      const error = new Error("Wrong password");
-      error.statusCode = 409;
-      throw error;
-    }
+		if (!isMatch) {
+			const error = new Error("Wrong password");
+			error.statusCode = 409;
+			throw error;
+		}
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+		const accessToken = generateAccessToken(user);
+		const refreshToken = generateRefreshToken(user);
 
-    await User.findByIdAndUpdate(
-      { _id: user._id },
-      { $set: { refreshToken: refreshToken } }
-    );
+		await User.findByIdAndUpdate(
+			{ _id: user._id },
+			{ $set: { refreshToken } },
+		);
 
-    await res.status(200).json({
-      accessToken,
-      refreshToken,
-      userId: user._id.toString(),
-      userFname: user.fullName,
-      email: user.email,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
+		await res.status(200).json({
+			accessToken,
+			refreshToken,
+			userId: user._id.toString(),
+			userFname: user.fullName,
+			email: user.email,
+		});
+	} catch (err) {
+		if (!err.statusCode) {
+			err.statusCode = 500;
+		}
+		next(err);
+	}
 };
 
-exports.refreshUserToken = async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken)
-      return res.status(401).json("You are not authenticated!");
-    jwt.verify(
-      refreshToken,
-      process.env.REFRESH_SECRET_KEY,
-      async (err, user) => {
-        err && console.log(err);
+export const refreshUserToken = async (req, res, next) => {
+	try {
+		const { refreshToken } = req.body;
+		if (!refreshToken)
+			return res.status(401).json("You are not authenticated!");
+		jwt.verify(
+			refreshToken,
+			process.env.REFRESH_SECRET_KEY,
+			async (err, user) => {
+				err && console.log(err);
 
-        const newAccessToken = generateAccessToken(user);
-        const newRefreshToken = generateRefreshToken(user);
+				const newAccessToken = generateAccessToken(user);
+				const newRefreshToken = generateRefreshToken(user);
 
-        await User.findOneAndUpdate(
-          { _id: user.id },
-          { $set: { refresh_token: newRefreshToken } }
-        );
+				await User.findOneAndUpdate(
+					{ _id: user.id },
+					{ $set: { refresh_token: newRefreshToken } },
+				);
 
-        await res.cookie("access_token", newAccessToken, {
-          maxAge: 3600000,
-        });
-        res.status(200).json({
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        });
-      }
-    );
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
+				await res.cookie("access_token", newAccessToken, {
+					maxAge: 3600000,
+				});
+				res.status(200).json({
+					accessToken: newAccessToken,
+					refreshToken: newRefreshToken,
+				});
+			},
+		);
+	} catch (err) {
+		if (!err.statusCode) {
+			err.statusCode = 500;
+		}
+		next(err);
+	}
 };
 
-exports.requestResetPassword = async (req, res, next) => {
-  try {
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+export const requestResetPassword = async (req, res, next) => {
+	try {
+		const characters =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    let randomCode = "";
+		let randomCode = "";
 
-    sgMail.setApiKey(process.env.SENDGRID);
+		sgMail.setApiKey(process.env.SENDGRID);
 
-    const charactersLength = characters.length;
+		const charactersLength = characters.length;
 
-    for (let i = 0; i < 8; i++) {
-      randomCode += characters.charAt(
-        Math.floor(Math.random() * charactersLength)
-      );
-    }
+		for (let i = 0; i < 8; i++) {
+			randomCode += characters.charAt(
+				Math.floor(Math.random() * charactersLength),
+			);
+		}
 
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    await ResetCode.findOneAndRemove({ user: user._id });
+		const { email } = req.body;
+		const user = await User.findOne({ email });
+		if (user === undefined) {
+			const error = new Error("Invalid email");
+			error.statusCode = 409;
+			throw error;
+		} else if (user.resetPasswordAt === undefined) {
+			await ResetCode.findOneAndRemove({ userId: user._id });
+		}
 
-    if (!user) {
-      const error = new Error("Invalid email");
-      error.statusCode = 401;
-      throw error;
-    }
+		await ResetCode.create({
+			resetCode: randomCode,
+			userId: user._id,
+			resetPassAt: Date.now(),
+		});
 
-    await ResetCode.create({
-      resetCode: randomCode,
-      user: user._id,
-      resetPassAt: Date.now(),
-    });
+		await User.findOneAndUpdate(
+			{ email },
+			{ $set: { resetPasswordAt: Date.now() } },
+		);
 
-    await User.findOneAndUpdate(
-      { email: email },
-      { $set: { resetPasswordAt: Date.now() } }
-    );
-
-    const msg = {
-      to: email,
-      from: process.env.SENDER,
-      subject: "Sending with SendGrid is Fun",
-      text: "and easy to do anywhere, even with Node.js",
-      html: `<div
+		const msg = {
+			to: email,
+			from: process.env.SENDER,
+			subject: "Sending with SendGrid is Fun",
+			text: "and easy to do anywhere, even with Node.js",
+			html: `<div
       style="text-align: center; box-sizing: border-box; margin: 0; padding: 0; color:black"
     >
       <div style="background-color: #ffff; padding-top: 20px">
@@ -250,49 +250,54 @@ exports.requestResetPassword = async (req, res, next) => {
         </div>
       </div>
     </div>`,
-    };
+		};
 
-    sgMail.send(msg);
+		sgMail.send(msg);
 
-    await res.status(200).json({
-      message: "Request reset code successfull ",
-      resetCode: randomCode,
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
+		await res.status(200).json({
+			message: "Request reset code successfull ",
+			resetCode: randomCode,
+		});
+	} catch (err) {
+		if (!err.statusCode) {
+			err.statusCode = 500;
+		}
+		next(err);
+	}
 };
 
-exports.resetPassword = async (req, res, next) => {
-  try {
-    const { email, reset_code, new_password } = req.body;
+export const resetPassword = async (req, res, next) => {
+	try {
+		const { email, reset_code, new_password } = req.body;
 
-    if (!reset_code) {
-      return res.status(401).json("Please check your reset code");
-    }
-    const user = await User.findOne({ email });
+		if (!reset_code) {
+			return res.status(401).json("Please check your reset code");
+		}
+		const user = await User.findOne({ email });
 
-    const resetCode = await ResetCode.findOne({ resetCode: reset_code });
+		const resetCode = await ResetCode.findOne({ resetCode: reset_code });
 
-    if (resetCode && resetCode.user.toString() === user._id.toString()) {
-      encryptedPassword = await bcrypt.hash(new_password, 16);
+		if (resetCode && resetCode.user.toString() === user._id.toString()) {
+			const encryptedPassword = await bcrypt.hash(new_password, 16);
 
-      const newUser = await User.findOneAndUpdate(
-        { email: email },
-        { $set: { password: encryptedPassword, reset_passwordAt: null } }
-      );
-    }
-    await ResetCode.findOneAndRemove({ resetCode: reset_code });
-    res.status(200).json({
-      message: "Reset password successfull ",
-    });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
+			await User.findOneAndUpdate(
+				{ email },
+				{
+					$set: {
+						password: encryptedPassword,
+						reset_passwordAt: null,
+					},
+				},
+			);
+		}
+		await ResetCode.findOneAndRemove({ resetCode: reset_code });
+		res.status(200).json({
+			message: "Reset password successfull ",
+		});
+	} catch (err) {
+		if (!err.statusCode) {
+			err.statusCode = 500;
+		}
+		next(err);
+	}
 };

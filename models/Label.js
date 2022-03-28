@@ -1,13 +1,13 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const labelSchema = new Schema(
-  {
-    labelName: { type: String, required: true },
+	{
+		labelName: { type: String, required: true },
 
-    creator: { type: Schema.Types.ObjectId, required: true, ref: "User" },
-  },
-  { timestamps: true }
+		creator: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+	},
+	{ timestamps: true }
 );
 
-module.exports = mongoose.model("Label", labelSchema);
+export default mongoose.model("Label", labelSchema);

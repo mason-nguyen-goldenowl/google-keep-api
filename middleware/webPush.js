@@ -1,15 +1,16 @@
-const webpush = require("web-push");
-module.exports = (req, res, next) => {
-  const publicVapidKey = process.env.PUBLIC_VAPIDKEY;
-  const privateVapidKey = process.env.PRIVATE_VAPIDKEY;
+import webpush from "web-push";
 
-  webpush.setVapidDetails(
-    "mailto:test@test.com",
-    publicVapidKey,
-    privateVapidKey
-  );
+export default (req, res, next) => {
+	const publicVapidKey = process.env.PUBLIC_VAPIDKEY;
+	const privateVapidKey = process.env.PRIVATE_VAPIDKEY;
 
-  req.sendNoti = webpush;
+	webpush.setVapidDetails(
+		"mailto:test@test.com",
+		publicVapidKey,
+		privateVapidKey,
+	);
 
-  next();
+	req.sendNoti = webpush;
+
+	next();
 };
